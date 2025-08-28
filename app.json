@@ -33,7 +33,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "react-native-iap",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
