@@ -1,12 +1,12 @@
-import { Habit } from "@/types/database.type";
+import { Habit, HabitCompletion } from "@/types/database.type";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { router } from "expo-router";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
-import { ID, Models } from "react-native-appwrite";
+import { ID, Models, Query } from "react-native-appwrite";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper'; // Add this import
-import { account } from "../lib/appwrite";
+import { account, COMPLETIONS_COLLECTION_ID, databases, DBID, habitCollectionId } from "../lib/appwrite";
 
 type PlanType = "free" | "premium";
 type ThemeMode  = 'light' | 'dark' | 'system';
@@ -177,12 +177,138 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     syncPlanToStorage();
-    // if (plan === "premium") {
-    //  const runSync = async()=>{
-    //    await syncRemindersAndUnsyncedHabitsToCloud(user?.$id!);
-    //  }
-    //  runSync();
-    // }
+  const syncLocalHabitTocloud = async () => {
+  //  setLoading(true); 
+  const data = await AsyncStorage.getItem("@habits");
+  const localHabits: Habit[] = data ? JSON.parse(data) : [];
+  const existingCompletions =  await AsyncStorage.getItem('@completedHabits');
+  const allCompletions = existingCompletions ? JSON.parse(existingCompletions) : [];  
+
+ const uploadLocalHabit = async () => {
+  if (localHabits.length === 0) {
+    console.log("No local habits to sync.");
+    return;
+  }
+
+  try {
+    // 1. Get all remote habits for the current user
+    let remoteHabits: Habit[] = [];
+    try {
+      const res = await databases.listDocuments(DBID!, habitCollectionId!, [
+        Query.equal("user_id", user?.$id ?? "")
+      ]);
+      remoteHabits = res.documents as Habit[];
+      console.log("✅ Fetched remote habits:", remoteHabits.length);
+    } catch (err) {
+      console.error("❌ Failed to fetch remote habits:", err);
+      return; // stop here if fetch fails
+    }
+
+    // 2. Delete all existing habits in cloud
+    try {
+      for (const habit of remoteHabits) {
+        await databases.deleteDocument(DBID!, habitCollectionId!, habit.$id);
+      }
+      console.log("✅ Deleted remote habits");
+    } catch (err) {
+      console.error("❌ Failed deleting remote habits:", err);
+      return; // stop here if deletion fails
+    }
+
+    // 3. Upload local habits to cloud
+    try {      
+      for (const habit of localHabits) {
+        console.log(habit);
+        
+        await databases.createDocument(
+          DBID!,
+          habitCollectionId!,
+          habit.id, // ⚠️ same warning: ID collisions possible if two clients use same $id
+          {
+            ...habit,
+            user_id: user?.$id ?? "",
+          }
+        );
+      }
+      console.log("✅ Uploaded local habits to cloud");
+    } catch (err) {
+      console.error("❌ Failed uploading local habits:", err);
+      return;
+    }
+
+    console.log("🎉 Local habits successfully synced to cloud!");
+  } catch (err) {
+    console.error("❌ Unexpected error syncing habits:", err);
+  }
+};
+
+
+  const uploadLocalCompletions = async () => {
+  if (allCompletions.length === 0) {
+    console.log("No local Completions to sync.");
+    return;
+  }
+
+  try {
+    // 1. Get all remote habits for the current user
+    let remoteCompletions: HabitCompletion[] = [];
+    try {
+      const res = await databases.listDocuments(DBID!, COMPLETIONS_COLLECTION_ID!, [
+        Query.equal("user_id", user?.$id ?? "")
+      ]);
+      remoteCompletions = res.documents as HabitCompletion[];
+      console.log("✅ Fetched remote completions:", remoteCompletions.length);
+    } catch (err) {
+      console.error("❌ Failed to fetch remote completions:", err);
+      return; // stop if fetch fails
+    }
+
+    // 2. Delete all existing habits in cloud
+    try {
+      for (const completion of remoteCompletions) {
+        await databases.deleteDocument(DBID!, COMPLETIONS_COLLECTION_ID!, completion.habit_id);
+      }
+      console.log("✅ Deleted remote completions");
+    } catch (err) {
+      console.error("❌ Failed deleting remote completions:", err);
+      return; // stop if deletion fails
+    }
+
+    // 3. Upload local habits to cloud
+    try {
+      for (const completion of allCompletions) {
+        await databases.createDocument(
+          DBID!,
+          COMPLETIONS_COLLECTION_ID!,
+          completion.habit_id, // ⚠️ careful: ID collision risk if multiple have same habit_id
+          {
+            ...completion,
+            user_id: user?.$id ?? "",
+          }
+        );
+      }
+      console.log("✅ Uploaded local completions to cloud");
+    } catch (err) {
+      console.error("❌ Failed uploading local completions:", err);
+      return;
+    }
+
+    console.log("🎉 Local completions successfully synced to cloud!");
+  } catch (err) {
+    console.error("❌ Unexpected error syncing completions:", err);
+  }
+};
+
+
+  // call the upload
+  await uploadLocalHabit();
+  await uploadLocalCompletions();
+};
+    if (plan === "premium" && user) {
+      syncLocalHabitTocloud();
+    }
+
+    
   }, [plan]);
 
 

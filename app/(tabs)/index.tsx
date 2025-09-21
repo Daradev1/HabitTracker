@@ -155,7 +155,6 @@ useEffect(() => {
 
 
 const handleDeleteHabit = async (habitId: string) => {
-  console.log(`habit id: ${habitId}`);
   
   try {
     // Close swipeable immediately
@@ -164,6 +163,8 @@ const handleDeleteHabit = async (habitId: string) => {
     // For premium users
     if (user && plan !== "free") {
       try {
+        console.log(`Deleting habit ${habitId} from remote`);
+        
         await databases.deleteDocument(DBID!, habitCollectionId!, habitId);
       } catch (remoteError) {
         console.error("Remote delete failed:", remoteError);
@@ -176,11 +177,11 @@ const handleDeleteHabit = async (habitId: string) => {
     if (existingHabits) {
       const habits = JSON.parse(existingHabits);
       // Filter out the habit to delete
+      
       const updatedHabits = habits.filter((h: any) => {
         // Ensure consistent ID comparison
         return String(h.id) === String(habitId) ? false : true;
       });
-      
       await AsyncStorage.setItem('@habits', JSON.stringify(updatedHabits));
       // Optimistically update UI state
       setHabits(updatedHabits);
@@ -221,6 +222,8 @@ const handleCompleteHabit = async (habitId: string) => {
     
     // Find the habit for streak update
     const habitToUpdate = habits?.find(h => h.id === habitId);
+    console.log(`habitToUpdate:`, habitToUpdate);
+    
     const newStreakCount = (habitToUpdate?.streak_count || 0) + 1;
 
     // For premium users
@@ -337,7 +340,7 @@ const renderRightActions =(habitId: string)=>{
    { completedMap[habitId] === undefined ? (
   <ActivityIndicator size="small" color="#fff" />
 ) : completedMap[habitId] ? (
-  <Text style={{color:"#fff", fontSize:16, fontWeight:"bold"}}>Completed!</Text>
+  <Text style={{color:"#fff", fontSize:16, fontWeight:"bold"}}>{"Completed!"}</Text>
 ) : (
   <MaterialCommunityIcons
     name="check-circle-outline"
@@ -407,9 +410,9 @@ const renderLeftActions =()=>{
     mode="text"
     onPress={() => router.replace('/login')}
     style={styles.premiumBtn}
-    labelStyle={{ color: "#fff" }} // optional for styling
+    textColor="#fff"
   >
-    <Text style={{ color: "#fff" }}>Premium</Text>
+    Premium
   </Button>
 </View>
 }
@@ -421,7 +424,7 @@ const renderLeftActions =()=>{
  {habits?.length === 0 ? (
   <View style={styles.emptyState}>
     <Text style={styles.emptyStateText} variant="bodyLarge">
-      No habits found. Start by adding a new habit!
+      {"No habits found. Start by adding a new habit!"}
     </Text>
   </View>
 ) : (
@@ -464,7 +467,7 @@ const renderLeftActions =()=>{
             <MaterialCommunityIcons name="fire" size={18} color="#ff9800" />
             
             <Text style={styles.streakText} variant="bodySmall">
-              {habit.streak_count} days streak
+              {`${habit.streak_count} days streak`}
             </Text>
           </View>
           <View style={styles.frequencyBadge}>
