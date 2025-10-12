@@ -7,6 +7,7 @@ import { useTheme } from "react-native-paper";
 export default function TabsLayout() {
   const { user, loading, plan, setPlan } = useAuth();
   const { colors, dark } = useTheme();
+  
 
   if (loading || plan === null) {
     return (
@@ -15,6 +16,9 @@ export default function TabsLayout() {
       </View>
     );
   }
+
+
+
 
   // Redirect ONLY if user is required (premium only)
   if (plan === "premium" && !user) {

@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 import { ID, Models, Query } from "react-native-appwrite";
-import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper'; // Add this import
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper'; // Add this import
 import { account, COMPLETIONS_COLLECTION_ID, databases, DBID, habitCollectionId } from "../lib/appwrite";
 
 type PlanType = "free" | "premium";
@@ -186,7 +186,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
  const uploadLocalHabit = async () => {
   if (localHabits.length === 0) {
-    console.log("No local habits to sync.");
     return;
   }
 
@@ -198,7 +197,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         Query.equal("user_id", user?.$id ?? "")
       ]);
       remoteHabits = res.documents as Habit[];
-      console.log("✅ Fetched remote habits:", remoteHabits.length);
     } catch (err) {
       console.error("❌ Failed to fetch remote habits:", err);
       return; // stop here if fetch fails
@@ -209,7 +207,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       for (const habit of remoteHabits) {
         await databases.deleteDocument(DBID!, habitCollectionId!, habit.$id);
       }
-      console.log("✅ Deleted remote habits");
     } catch (err) {
       console.error("❌ Failed deleting remote habits:", err);
       return; // stop here if deletion fails
@@ -226,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           habit.id, // ⚠️ same warning: ID collisions possible if two clients use same $id
           {
             ...habit,
+            last_completed: habit.last_completed || "", // ← avoid null
             user_id: user?.$id ?? "",
           }
         );
@@ -372,9 +370,7 @@ return (
     signIn, 
     signOut 
   }}>
-    <PaperProvider theme={paperTheme}> {/* Add this wrapper */}
       {children}
-    </PaperProvider>
   </AuthContext.Provider>
 );
 }

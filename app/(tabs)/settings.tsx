@@ -1,348 +1,367 @@
 import { useAuth } from "@/context/authContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as LocalAuthentication from "expo-local-authentication";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Divider, Switch, useTheme } from 'react-native-paper';
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useState } from "react";
+import {
+  Alert, Linking,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from "react-native";
+import {
+  Divider,
+  Switch,
+  Text,
+  TouchableRipple,
+  useTheme,
+} from "react-native-paper";
+import DailyQuote from '../../components/dailyQuotes';
 
 const SettingScreen = () => {
   const { colors, dark } = useTheme();
   const { plan } = useAuth();
   const router = useRouter();
-  const [isVacationEnabled, setIsVacationEnabled] = useState<string | boolean>(false);
+  const [isSafetyLockEnabled, setIsSafetyLockEnabled] = useState(false);
 
 
-const handleInstagramPress = () => {
-    Linking.openURL('https://instagram.com/lightbyte_apps');
+  const handleInstagramPress = () => {
+    Linking.openURL("https://instagram.com/");
   };
 
   const handleShare = () => {
-    // Implement your share functionality here
+    // share logic
   };
 
   const handleReview = () => {
-    // Implement app store review logic
+    // store review logic
   };
-  const handleUpgradeRoute = ()=>{
+
+  const handleUpgradeRoute = () => {
     if (plan === "premium") return;
-    router.replace('/auth')
-  }
-
-    useEffect(() => {
-    const loadVacationMode = async () => {
-      try {
-        const storedValue = await AsyncStorage.getItem('vacationMode');
-        if (storedValue !== null) {
-          setIsVacationEnabled(
-            storedValue === 'true' ? true :
-            storedValue === 'false' ? false :
-            storedValue // keep as string if not boolean
-          );
-        }
-      } catch (error) {
-        console.error('Failed to load vacation mode:', error);
-      }
-    };
-    loadVacationMode();
-  }, []);
-
- const handleVacationMode = async (value: boolean) => {
-    if (plan === "free") {
-      Alert.alert(
-        "Premium Feature",
-        "Upgrade to premium to use vacation mode",
-        [
-          { text: "Cancel" },
-          { text: "Upgrade", onPress: () => router.push('/auth') }
-        ]
-      );
-      return;
-    }
-
-    try {
-      // Store as string if it's a string, otherwise convert boolean to string
-      const valueToStore = typeof isVacationEnabled === 'string' 
-        ? isVacationEnabled 
-        : String(value);
-      
-      await AsyncStorage.setItem("vacationMode", valueToStore);
-      setIsVacationEnabled(value);
-      console.log("Vacation mode:", valueToStore);
-    } catch (error) {
-      console.error("Failed to set vacation mode:", error);
-    }
+    router.replace("/auth");
   };
 
+ 
+
+// 🔹 Check stored value when the Settings screen loads
+useEffect(() => {
+  const loadSafetyLockStatus = async () => {
+    const storedValue = await SecureStore.getItemAsync("safetyLockEnabled");
+    setIsSafetyLockEnabled(storedValue === "true");
+  };
+  loadSafetyLockStatus();
+}, []);
+
+
+// 🔹 Handle toggle
+const handleSafetyLock = async (value: boolean) => {
+  try {
+    if (value) {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      if (!compatible) {
+        Alert.alert("Not Supported", "Your device does not support biometric authentication.");
+        return;
+      }
+
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!enrolled) {
+        Alert.alert(
+          "No Biometrics Found",
+          "Please enable Face ID, Touch ID, or PIN in your device settings first."
+        );
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Confirm your identity to enable Safety Lock",
+        fallbackLabel: "Enter Device Passcode",
+      });
+
+      if (result.success) {
+        await SecureStore.setItemAsync("safetyLockEnabled", "true");
+        setIsSafetyLockEnabled(true); // ✅ Update UI
+        Alert.alert("Safety Lock Enabled", "Your app is now protected by biometrics or device PIN.");
+      } else {
+        Alert.alert("Cancelled", "Safety Lock was not enabled.");
+      }
+    } else {
+      await SecureStore.deleteItemAsync("safetyLockEnabled");
+      setIsSafetyLockEnabled(false); // ✅ Update UI
+      Alert.alert("Safety Lock Disabled", "Your app is no longer protected.");
+    }
+  } catch (error) {
+    console.error("Safety Lock Error:", error);
+    Alert.alert("Error", "Something went wrong while updating safety lock.");
+  }
+};
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
-      paddingTop: 50,
     },
     header: {
-      paddingHorizontal: 20,
-      paddingBottom: 20,
+      paddingHorizontal: 24,
+      paddingTop: 50,
+      paddingBottom: 28,
       backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.surfaceVariant,
     },
     headerContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 24,
     },
     name: {
-      fontSize: 28,
-      fontWeight: 'bold',
+      fontSize: 26,
+      fontWeight: "700",
       color: colors.onSurface,
     },
     editButton: {
-      padding: 5,
+      padding: 6,
+      borderRadius: 50,
     },
     upgradeCard: {
-      backgroundColor: dark ? '#1e1e1e' : '#ede7f6',
-      borderRadius: 12,
-      padding: 20,
-      paddingRight: 50,
-      position: 'relative',
+      backgroundColor: dark ? "#1e1e1e" : "#f5f2ff",
+      borderRadius: 14,
+      padding: 18,
+      marginTop: 4,
+      position: "relative",
       borderWidth: 1,
-      borderColor: dark ? '#333' : '#d1c4e9',
+      borderColor: dark ? "#333" : "#e0d4ff",
     },
     upgradeTitle: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: "600",
       color: colors.primary,
-      marginBottom: 5,
     },
     upgradeSubtitle: {
       fontSize: 14,
       color: colors.onSurfaceVariant,
+      marginTop: 4,
     },
     crownIcon: {
-      position: 'absolute',
+      position: "absolute",
       right: 20,
       top: 20,
     },
     content: {
       flex: 1,
       paddingHorizontal: 20,
-      backgroundColor: colors.background,
+      paddingTop: 12,
     },
     card: {
       backgroundColor: colors.surface,
       borderRadius: 12,
       padding: 20,
-      marginBottom: 20,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-      elevation: 3,
-    },
-    quoteHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 15,
+      marginBottom: 24,
+      elevation: 2,
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: "600",
       color: colors.onSurface,
-      marginBottom: 15,
-    },
-    viewAll: {
-      color: colors.primary,
-      fontSize: 14,
+      marginBottom: 16,
     },
     quoteText: {
       fontSize: 16,
       color: colors.onSurfaceVariant,
-      fontStyle: 'italic',
-      marginBottom: 20,
+      fontStyle: "italic",
       lineHeight: 24,
-    },
-    divider: {
-      marginVertical: 20,
-      height: 1,
-      backgroundColor: "#e0e0e0",
-    },
-    settingsList: {
-      marginTop: 10,
+      marginBottom: 12,
     },
     settingItem: {
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.surfaceVariant,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 14,
     },
     settingText: {
       fontSize: 16,
       color: colors.onSurface,
     },
-    socialItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    divider: {
+      opacity: 0.2,
     },
     versionItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingVertical: 16,
     },
     versionText: {
       fontSize: 14,
       color: colors.onSurfaceVariant,
     },
-      
-
   });
 
   return (
     <View style={styles.container}>
-      {/* Header Section */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.name}>Dara</Text>
           <TouchableOpacity style={styles.editButton}>
-            <MaterialCommunityIcons name="pencil" size={20} color={colors.primary} />
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={22}
+              color={colors.primary}  
+             onPress={() => router.push("/profile")}
+            />
           </TouchableOpacity>
+
+
         </View>
-        
-        {plan === "free" ? (
-          <TouchableOpacity style={styles.upgradeCard}>
-            <View>
-              <Text style={styles.upgradeTitle}>Upgrade to Premium</Text>
-              <Text style={styles.upgradeSubtitle}>Get a bit better everyday</Text>
-            </View>
-            <MaterialCommunityIcons 
-              name="crown" 
-              size={24} 
-              color="#FFD700" 
+
+        <TouchableRipple
+          onPress={handleUpgradeRoute}
+          borderless
+          style={styles.upgradeCard}
+        >
+          <>
+            <Text style={styles.upgradeTitle}>
+              {plan === "free" ? "Upgrade to Premium" : "Premium Member"}
+            </Text>
+            <Text style={styles.upgradeSubtitle}>
+              {plan === "free"
+                ? "Unlock all features for better tracking."
+                : "Enjoy unlimited access and exclusive perks."}
+            </Text>
+            <MaterialCommunityIcons
+              name="crown"
+              size={28}
+              color="#FFD700"
               style={styles.crownIcon}
             />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.upgradeCard}>
-            <View>
-              <Text style={styles.upgradeTitle}>Premium membership</Text>
-              <Text style={styles.upgradeSubtitle}>Enjoy premium features</Text>
-            </View>
-            <MaterialCommunityIcons 
-              name="crown" 
-              size={24} 
-              color="#FFD700" 
-              style={styles.crownIcon}
-            />
-          </TouchableOpacity>
-        )}
+          </>
+        </TouchableRipple>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/*quote  */}
+        <Text style={styles.sectionTitle}>Daily Inspiration</Text>
+       <DailyQuote/>
+   {/*quote  */}
         <View style={styles.card}>
-          <View style={styles.quoteHeader}>
-            <Text style={styles.sectionTitle}>Daily Quote</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAll}>View {">"}</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.quoteText}>
-            I am open to receiving all the love and support that surrounds me.
-          </Text>
-          
-          <Divider style={styles.divider} />
-          
           <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.settingsList}>
-            {/* All your setting items here */}
-            <TouchableOpacity style={styles.settingItem}>
-              <Text style={styles.settingText}>Vacation Mode</Text>
+
+          <TouchableRipple onPress={() => handleSafetyLock(!isSafetyLockEnabled)}>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingText}>Safety Lock</Text>
               <Switch
-                value={Boolean(isVacationEnabled)} 
-                onValueChange={handleVacationMode}
+                value={Boolean(isSafetyLockEnabled)}
+                onValueChange={handleSafetyLock}
                 color={colors.primary}
               />
-            </TouchableOpacity>
-            
-        <TouchableOpacity style={styles.settingItem}>
-              <Text style={styles.settingText}>Safety Lock</Text>
-            </TouchableOpacity>
-            <TouchableOpacity  onPress={()=>router.push('/appearance')} style={styles.settingItem}>
+            </View>
+          </TouchableRipple>
+
+          <Divider style={styles.divider} />
+
+          <TouchableRipple onPress={() => router.push("/appearance")}>
+            <View style={styles.settingItem}>
               <Text style={styles.settingText}>Appearance</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.settingItem}>
-              <Text style={styles.settingText}>Reset Settings</Text>
-            </TouchableOpacity>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={22}
+                color={colors.onSurfaceVariant}
+              />
+            </View>
+          </TouchableRipple>
 
-             <TouchableOpacity style={styles.settingItem}>
-              <Text style={styles.settingText}>Notifications Settings</Text>
-            </TouchableOpacity>
-             <TouchableOpacity onPress={handleUpgradeRoute} style={[styles.settingItem, {justifyContent:'space-between', flexDirection:"row"}]}>
-              <Text style={styles.settingText}>Cloud sync</Text>
-              <Text style={[styles.settingText, {opacity:0.5}, plan  === 'free' ? {color:"#FFD700", opacity:1}: '']}>{plan === "free" ? 'Upgrade to Premium' : 'Enabled'}</Text>
-            </TouchableOpacity>
-            
-          </View>
+          <Divider style={styles.divider} />
+
+          <TouchableRipple>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingText}>Notifications</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={22}
+                color={colors.onSurfaceVariant}
+              />
+            </View>
+          </TouchableRipple>
+
+          <Divider style={styles.divider} />
+
+          <TouchableRipple>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingText}>Habit Manager</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={22}
+                color={colors.onSurfaceVariant}
+              />
+            </View>
+          </TouchableRipple>
+
+          <Divider style={styles.divider} />
+
+          <TouchableRipple onPress={handleUpgradeRoute}>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingText}>Cloud Sync</Text>
+              <Text
+                style={[
+                  styles.settingText,
+                  plan === "free"
+                    ? { color: "#FFD700", fontWeight: "600" }
+                    : { opacity: 0.6 },
+                ]}
+              >
+                {plan === "free" ? "Upgrade" : "Enabled"}
+              </Text>
+            </View>
+          </TouchableRipple>
         </View>
-        {/* About section */}
 
-         <TouchableOpacity style={styles.settingItem}>
-    <Text style={styles.settingText}>About</Text>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-    <TouchableOpacity style={styles.settingItem}>
-    <Text style={styles.settingText}>Usage Tips</Text>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-  <TouchableOpacity style={styles.settingItem}>
-    <Text style={styles.settingText}>FAQs</Text>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-  <TouchableOpacity style={styles.settingItem}>
-    <Text style={styles.settingText}>Contact us</Text>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-  <TouchableOpacity 
-    style={styles.settingItem}
-    onPress={() => Linking.openURL('https://instagram.com/lightbyte_apps')}
-  >
-    <View style={styles.socialItem}>
-      <MaterialCommunityIcons name="instagram" size={20} color="#6200ee" />
-      <Text style={[styles.settingText, { marginLeft: 10 }]}>Instagram: lightbyte_apps</Text>
-    </View>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-  <TouchableOpacity 
-    style={styles.settingItem}
-    onPress={handleShare} //  share functionality
-  >
-    <View style={styles.socialItem}>
-      <MaterialCommunityIcons name="share-variant" size={20} color="#6200ee" />
-      <Text style={[styles.settingText, { marginLeft: 10 }]}>Share</Text>
-    </View>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-  <TouchableOpacity style={styles.settingItem}>
-    <Text style={styles.settingText}>Review & Support</Text>
-  </TouchableOpacity>
-  <Divider style={styles.divider} />
-  
-  <View style={styles.versionItem}>
-    <Text style={styles.versionText}>V 2.10.21</Text>
-    <MaterialCommunityIcons name="chevron-right" size={20} color="#888" />
-  </View>
-       
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>About</Text>
+
+          <TouchableRipple onPress={handleInstagramPress}>
+            <View style={styles.settingItem}>
+              <MaterialCommunityIcons
+                name="instagram"
+                size={20}
+                color={colors.primary}
+              />
+              <Text
+                style={[styles.settingText, { marginLeft: 12, flexShrink: 1 }]}
+              >
+                Instagram: lightbyte_apps
+              </Text>
+            </View>
+          </TouchableRipple>
+
+          <Divider style={styles.divider} />
+
+          <TouchableRipple onPress={handleShare}>
+            <View style={styles.settingItem}>
+              <MaterialCommunityIcons
+                name="share-variant"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.settingText, { marginLeft: 12 }]}>Share</Text>
+            </View>
+          </TouchableRipple>
+
+          <Divider style={styles.divider} />
+
+          <TouchableRipple>
+            <View style={styles.versionItem}>
+              <Text style={styles.versionText}>App Version</Text>
+              <Text style={styles.versionText}>v1.10.0</Text>
+            </View>
+          </TouchableRipple>
+        </View>
       </ScrollView>
     </View>
   );
 };
 
-export default SettingScreen;
+export default SettingScreen; 

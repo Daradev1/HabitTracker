@@ -4,7 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
-import { Button, TouchableRipple } from 'react-native-paper';
+import { Button, TouchableRipple, useTheme } from 'react-native-paper';
 
 interface TimePickerProps {
   reminderTimes: string[];
@@ -15,6 +15,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ reminderTimes, setReminderTimes
 
   const { plan } = useAuth();
   const router = useRouter();
+  const {colors, dark} = useTheme()
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempTime, setTempTime] = useState(new Date());
 
@@ -53,6 +54,45 @@ const TimePicker: React.FC<TimePickerProps> = ({ reminderTimes, setReminderTimes
     setReminderTimes(newTimes);
   };
 
+// css
+
+const styles = StyleSheet.create({
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.onSurface,
+    marginBottom: 8,
+  },
+  timeItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  timeText: {
+    fontSize: 16,
+    color: colors.onSurface,
+  },
+  placeholderText: {
+    color: colors.onSurfaceVariant,
+    fontSize: 14,
+    textAlign: 'center',
+    marginVertical: 8,
+  },
+  addButton: {
+    borderColor: '#6200ee',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  addButtonLabel: {
+    color: colors.primary,
+  },
+});
+
   return (
     <>
       <Text style={styles.sectionHeader}>Notification Times</Text>
@@ -87,48 +127,11 @@ const TimePicker: React.FC<TimePickerProps> = ({ reminderTimes, setReminderTimes
           is24Hour={true}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleTimeChange}
-          themeVariant="light"
+          themeVariant={dark ? 'dark' : 'light'}
         />
       )}
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  timeItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  timeText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  placeholderText: {
-    color: '#888',
-    fontSize: 14,
-    textAlign: 'center',
-    marginVertical: 8,
-  },
-  addButton: {
-    borderColor: '#6200ee',
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  addButtonLabel: {
-    color: '#6200ee',
-  },
-});
 
 export default TimePicker;

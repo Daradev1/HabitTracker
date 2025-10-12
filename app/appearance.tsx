@@ -1,9 +1,9 @@
-// lib/components/ThemeSwitcher.tsx
 import { useAuth } from "@/context/authContext";
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, useTheme } from "react-native-paper";
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function AppearanceScreen() {
   const { themeMode, setThemeMode, isDark } = useAuth();
@@ -11,21 +11,9 @@ export default function AppearanceScreen() {
   const { colors } = theme;
 
   const options = [
-    { 
-      value: 'light', 
-      icon: 'light-mode',
-      label: 'Light'
-    },
-    { 
-      value: 'dark', 
-      icon: 'dark-mode',
-      label: 'Dark'
-    },
-    { 
-      value: 'system', 
-      icon: 'settings',
-      label: 'System'
-    },
+    { value: 'light', icon: 'light-mode', label: 'Light' },
+    { value: 'dark', icon: 'dark-mode', label: 'Dark' },
+    { value: 'system', icon: 'settings', label: 'System' },
   ];
 
   return (
@@ -33,48 +21,58 @@ export default function AppearanceScreen() {
       <Text variant="headlineMedium" style={[styles.title, { color: colors.onBackground }]}>
         Appearance
       </Text>
-      
-      <View style={[styles.optionsContainer, { 
-        backgroundColor: colors.surfaceVariant,
-        shadowColor: colors.shadow
-      }]}>
+
+      <Animated.View 
+        entering={FadeInDown.duration(400)}
+        style={[
+          styles.optionsContainer,
+          { backgroundColor: colors.surfaceVariant, shadowColor: colors.shadow },
+        ]}
+      >
         {options.map((option) => (
           <TouchableOpacity
             key={option.value}
             onPress={() => setThemeMode(option.value as any)}
             style={[
               styles.option,
-              themeMode === option.value && { 
-                backgroundColor: colors.primaryContainer 
-              }
+              themeMode === option.value && { backgroundColor: colors.primaryContainer },
             ]}
+            activeOpacity={0.8}
           >
             <MaterialIcons
               name={option.icon as any}
-              size={24}
-              color={themeMode === option.value ? colors.primary : colors.onSurfaceVariant}
+              size={26}
+              color={
+                themeMode === option.value ? colors.primary : colors.onSurfaceVariant
+              }
             />
-            <Text 
+            <Text
               variant="labelLarge"
               style={[
                 styles.optionLabel,
-                { 
-                  color: themeMode === option.value ? colors.primary : colors.onSurfaceVariant 
-                }
+                {
+                  color:
+                    themeMode === option.value
+                      ? colors.primary
+                      : colors.onSurfaceVariant,
+                },
               ]}
             >
               {option.label}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
-      
-      <Text variant="bodyMedium" style={[styles.hint, { color: colors.onSurfaceVariant }]}>
+      </Animated.View>
+
+      <Text
+        variant="bodyMedium"
+        style={[styles.hint, { color: colors.onSurfaceVariant }]}
+      >
         Current mode: {isDark ? 'Dark' : 'Light'}
       </Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -82,34 +80,34 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    marginBottom: 32,
+    marginBottom: 28,
     textAlign: 'center',
     fontWeight: '600',
   },
   optionsContainer: {
-    borderRadius: 12,
-    padding: 8,
+    borderRadius: 14,
+    padding: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowRadius: 5,
     elevation: 3,
   },
   option: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 8,
+    paddingVertical: 18,
+    borderRadius: 10,
     marginHorizontal: 4,
   },
   optionLabel: {
-    marginTop: 8,
+    marginTop: 6,
     fontWeight: '500',
   },
   hint: {
-    marginTop: 24,
+    marginTop: 30,
     textAlign: 'center',
-    opacity: 0.8,
+    opacity: 0.7,
   },
 });

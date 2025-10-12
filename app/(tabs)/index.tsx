@@ -7,9 +7,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, AppState, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Query } from "react-native-appwrite";
+import { ID, Query } from "react-native-appwrite";
 import { Swipeable } from "react-native-gesture-handler";
-import { ActivityIndicator, Button, Surface, Text, useTheme } from "react-native-paper";
+import { ActivityIndicator, Surface, Text, useTheme } from "react-native-paper";
 
 
 export default function HomeScreen() {
@@ -162,9 +162,7 @@ const handleDeleteHabit = async (habitId: string) => {
 
     // For premium users
     if (user && plan !== "free") {
-      try {
-        console.log(`Deleting habit ${habitId} from remote`);
-        
+      try {        
         await databases.deleteDocument(DBID!, habitCollectionId!, habitId);
       } catch (remoteError) {
         console.error("Remote delete failed:", remoteError);
@@ -221,20 +219,19 @@ const handleCompleteHabit = async (habitId: string) => {
     setCompletedHabits(prev => [...prev, habitId]);
     
     // Find the habit for streak update
-    const habitToUpdate = habits?.find(h => h.id === habitId);
-    console.log(`habitToUpdate:`, habitToUpdate);
-    
+    const habitToUpdate = habits?.find(h => h.id === habitId);    
     const newStreakCount = (habitToUpdate?.streak_count || 0) + 1;
 
     // For premium users
     if (user && plan !== "free") {
       try {
         await databases.createDocument(
-          DBID!,
-          COMPLETIONS_COLLECTION_ID!,
-          habitId,
-          completionData
+        DBID!,
+        COMPLETIONS_COLLECTION_ID!,
+        ID.unique(),   // instead of habitId
+        completionData
         );
+
 
         if (habitToUpdate) {
           await databases.updateDocument(
@@ -340,14 +337,16 @@ const renderRightActions =(habitId: string)=>{
    { completedMap[habitId] === undefined ? (
   <ActivityIndicator size="small" color="#fff" />
 ) : completedMap[habitId] ? (
-  <Text style={{color:"#fff", fontSize:16, fontWeight:"bold"}}>{"Completed!"}</Text>
+  <Text style={{color:"#fff", fontSize:16, fontWeight:"bold"}}>Completed!</Text>
 ) : (
+  <Text>
   <MaterialCommunityIcons
     name="check-circle-outline"
     size={32}
     color="#fff"
     style={{ marginRight: 16 }}
   />
+  </Text>
 )}
 
     </View>
@@ -357,12 +356,14 @@ const renderRightActions =(habitId: string)=>{
 const renderLeftActions =()=>{
   return (
     <View style={styles.swipeableActionLeft}>
+      <Text>
       <MaterialCommunityIcons
         name="trash-can-outline"
         size={32}
         color="#fff"
         style={{ marginRight: 16 }}
         />
+        </Text>
     </View>
   )
 }
@@ -375,56 +376,190 @@ const renderLeftActions =()=>{
     return
  }
 
+ // css
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#F8F9FC",
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+
+  title: {
+    fontWeight: "700",
+    fontSize: 24,
+    color: "#1E1E2F",
+  },
+
+  // Premium Button Container
+  premiumContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#7C4DFF",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+
+  premiumBtnText: {
+    fontSize: 14,
+    color: "#fff",
+    fontWeight: "600",
+    marginLeft: 4,
+    textTransform: "uppercase",
+  },
+
+  // Habit Cards
+  card: {
+    marginBottom: 16,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+
+  cardContent: {
+    padding: 18,
+  },
+
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E1E2F",
+    marginBottom: 6,
+  },
+
+  cardDescription: {
+    fontSize: 15,
+    color: "#6C6C80",
+    marginBottom: 12,
+  },
+
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF5E5",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+
+  streakText: {
+    marginLeft: 6,
+    color: "#FF9800",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  frequencyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EDE7F6",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+
+  frequencyText: {
+    color: "#7C4DFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 100,
+  },
+
+  emptyStateText: {
+    color: "#6C6C80",
+    textAlign: "center",
+    fontSize: 16,
+    marginTop: 16,
+  },
+
+  swipeableActionLeft: {
+    backgroundColor: "#FF1744",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    paddingLeft: 16,
+    borderRadius: 18,
+    marginBottom: 18,
+    marginTop: 2,
+    flex: 1,
+  },
+
+  swipeableActionRight: {
+    backgroundColor: "#4CAF50",
+    justifyContent: "center",
+    alignItems: "flex-end",
+    borderRadius: 18,
+    marginBottom: 18,
+    marginTop: 2,
+    flex: 1,
+    paddingRight: 16,
+  },
+
+  cardCompleted: {
+    opacity: 0.6,
+    backgroundColor: "#E8F5E9",
+  },
+});
+
+
+
 
   return (
     <View style={[styles.container, {backgroundColor: theme.colors.background }]}>
    <View style={styles.header}>
-<Text variant="headlineSmall" style={styles.title}> Today's Habit</Text>
+  <Text style={styles.title}>Today's Habits</Text>
 
-  <View>
-{plan === "premium" ?    
-  <TouchableOpacity
-      style={[
-        styles.iconbg,
-        { backgroundColor: isPressed ? '#7c4dff' : '#ede7f6' }
-      ]}
+  {plan === "premium" ? (
+    <TouchableOpacity
+      style={[ { backgroundColor: isPressed ? "#7C4DFF" : "#EDE7F6" }]}
       activeOpacity={0.8}
       onPressIn={() => setIsPressed(true)}
       onPressOut={() => setIsPressed(false)}
+      onPress={handleUser}
     >
-      <MaterialCommunityIcons 
-        name="account" 
-        size={30} 
-        onPress={handleUser}
-        color={isPressed ? 'white' : '#7c4dff'} 
-      /> 
-    </TouchableOpacity> :
-    <View style={{ flexDirection: "row", backgroundColor:"#7c4dff", justifyContent: "center", alignItems: "center" }}>
-  <MaterialCommunityIcons 
-    name="crown" 
-    size={16} 
-    color="#FFD700"
-    style={{ marginRight: 4 }} 
-  />
-  <Button
-    mode="text"
-    onPress={() => router.replace('/login')}
-    style={styles.premiumBtn}
-    textColor="#fff"
-  >
-    Premium
-  </Button>
+      <MaterialCommunityIcons
+        name="account"
+        size={28}
+        color={isPressed ? "white" : "#7C4DFF"}
+      />
+    </TouchableOpacity>
+  ) : (
+    <View style={styles.premiumContainer}>
+      <MaterialCommunityIcons name="crown" size={16} color="#FFD700" />
+      <Text style={styles.premiumBtnText}>Go Premium</Text>
+    </View>
+  )}
 </View>
-}
-  </View>
 
-   </View>
 
  <ScrollView showsVerticalScrollIndicator={false} >
  {habits?.length === 0 ? (
   <View style={styles.emptyState}>
     <Text style={styles.emptyStateText} variant="bodyLarge">
-      {"No habits found. Start by adding a new habit!"}
+      No habits found. Start by adding a new habit!
     </Text>
   </View>
 ) : (
@@ -453,27 +588,29 @@ const renderLeftActions =()=>{
   style={[
     styles.card,
     completedMap[habit.id] === true && styles.cardCompleted
-  ]}
+  ]}  
   elevation={0}
 >      <View style={styles.cardContent}>
+
         <Text style={styles.cardTitle} variant="titleMedium">
-          {habit.title}
-        </Text>
+        {String(habit.title ?? "")}
+      </Text>
         <Text style={styles.cardDescription} variant="bodyMedium">
-          {habit.description}
-        </Text>
+        {String(habit.description ?? "")}
+      </Text>
+
         <View style={styles.cardFooter}>
           <View style={styles.streakBadge}>
             <MaterialCommunityIcons name="fire" size={18} color="#ff9800" />
             
-            <Text style={styles.streakText} variant="bodySmall">
-              {`${habit.streak_count} days streak`}
-            </Text>
+         <Text style={styles.streakText} variant="bodySmall">
+          {`${Number(habit.streak_count ?? 0)} days streak`}
+        </Text>
           </View>
           <View style={styles.frequencyBadge}>
-            <Text style={styles.frequencyText}>
-              {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}
-            </Text>
+           <Text style={styles.frequencyText}>
+          {String(habit.frequency ?? "").charAt(0).toUpperCase() + String(habit.frequency ?? "").slice(1)}
+        </Text>
           </View>
         </View>
       </View>
@@ -488,148 +625,3 @@ const renderLeftActions =()=>{
 
 }
 
-// css
-const styles = StyleSheet.create({
-  view: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  container:{
-    flex:1,
-    padding:16,
-    backgroundColor:"#f5f5f5"
-  },
-  header:{
-    flexDirection:"row",
-    justifyContent:'space-between',
-    alignItems:'center',
-    marginBottom:24
-  },
-  title:{
-   fontWeight:'bold',
-  },
-  premiumBtn:{
-   fontSize: 20, // Small text
-  color: '#FFD700', // Gold text
-  fontWeight: 'bold',
-  paddingVertical: 0,
-  textTransform: 'uppercase',
-  },
-  card:{
-    marginBottom:18,
-    borderRadius:18,
-    backgroundColor:'#f7f2fa',
-    shadowColor:'#000',
-    textShadowOffset: {width: 0, height:2},
-    shadowOpacity:0.08,
-    shadowRadius:8,
-    elevation:4,
-  },
-  cardContent:{
-   padding: 20,
-
-  },
-  cardTitle:{
-  fontSize:20,
-  fontWeight: 'bold',
-  marginBottom:4,
-  color:'#22223b',
-  },
-  cardDescription:{
-  fontSize:15,
-  marginBottom:16,
-  color:'#6c6c80',
-  },
-  cardFooter:{
-    flexDirection:'row',
-    justifyContent:'space-between',
-    alignContent:"center"
-  },
-  streakBadge:{
-    flexDirection:'row',
-    alignItems:'center',
-    backgroundColor:'#fff3e0',
-    borderRadius:12,
-    paddingHorizontal:10,
-    paddingVertical:4,
-  },
-  streakText:{
-    marginLeft:6,
-    color:'#ff9800',
-    fontWeight:'bold',
-    fontSize:14,
-  },
-  icon:{
-    position:"absolute",
-    marginLeft:3,
-    marginTop:2
-
-  },
- iconbg:{
-    borderRadius: 100,
-    height: 40,
-    width: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
- },
-
-   frequencyBadge:{
-    marginLeft:6,
-    flexDirection:'row',
-    backgroundColor:'#ede7f6',
-    borderRadius:12,
-    paddingHorizontal:12,
-    fontWeight:'bold',
-    paddingVertical:4,
-    fontSize:14,
-  },
-  frequencyText:{
-     color:'#7c4dff',
-    fontWeight:'bold',
-    fontSize:14,
-  },
-
-  emptyState: {
-  flex: 1,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-emptyStateText: {
-  color: "#666666",
-  textAlign: "center",
-  fontSize: 16,
-  marginTop: 20,
-},
-swipeableActionLeft:{
-  backgroundColor: "#ff1744",
-  justifyContent: "center",
-  alignItems: "flex-start",
-  paddingLeft: 16,
-  borderRadius:18,
-  marginBottom:18,
-  marginTop:2,
-  flex: 1,
-},
-swipeableActionRight:{
-  backgroundColor: "#4caf50",
-  justifyContent: "center",
-  alignItems: "flex-end",
-  borderRadius:18,
-  marginBottom:18,
-  marginTop:2,
-  flex: 1,
-  paddingRight: 16,
-},
-cardCompleted:{
-  // backgroundColor: "#e8f5e9",
-  // shadowColor: "#4caf50",
-  // textShadowOffset: { width: 0, height: 2 },
-  // shadowOpacity: 0.08,
-  // shadowRadius: 8,
-  // elevation: 4,
-  opacity: 0.6,
-  backgroundColor: "#e8f5e9",
-}
-})

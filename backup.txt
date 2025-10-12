@@ -1,16 +1,15 @@
 import { useHabit } from '@/context/habitContext';
 import React, { useMemo, useState } from 'react';
 import {
-  Dimensions,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Dimensions,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
 
 // Types
 interface ContributionGridProps {
@@ -41,7 +40,6 @@ export default function ContributionGrid({
 }: ContributionGridProps) {
   const [selected, setSelected] = useState<SelectedCell | null>(null);
   const {habits, completedHabits} = useHabit();
-  const {colors} = useTheme();
   // compute cellSize if not provided
   const computedCellSize = useMemo(() => {
     const available = SCREEN_WIDTH - 40; // some padding
@@ -65,69 +63,6 @@ export default function ContributionGrid({
 
   // months labels above grid for the first date appearing in each column
   const monthLabels = useMemo(() => getMonthLabels(weeks), [weeks]);
-
-  // css 
-
-  const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 12,
-    marginBottom: 6,
-    color: colors.onSurface,
-  },
-  monthLabel: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    marginRight: 8,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 12,
-  },
-  legendText: {
-    fontSize: 12,
-    color: '#666',
-    marginHorizontal: 1,
-  },
-  legendBoxes: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCard: {
-    width: 260,
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalDate: {
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  modalCount: {
-    marginBottom: 12,
-    color: '#333',
-  },
-  modalClose: {
-    backgroundColor: '#222',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-});
-
 
   return (
     <View style={styles.container}>
@@ -288,3 +223,103 @@ function startOfWeek(d: Date): Date {
   return addDays(dt, -day);
 }
 
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 8,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 12,
+    marginBottom: 6,
+  },
+  monthLabel: {
+    fontSize: 12,
+    color: '#444',
+    marginRight: 8,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 12,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#666',
+    marginHorizontal: 8,
+  },
+  legendBoxes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    width: 260,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalDate: {
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  modalCount: {
+    marginBottom: 12,
+    color: '#333',
+  },
+  modalClose: {
+    backgroundColor: '#222',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+});
+
+
+ // if (plan === "free") {
+    //   Alert.alert("Premium Feature", "Upgrade to premium to use vacation mode", [
+    //     { text: "Cancel" },
+    //     { text: "Upgrade", onPress: () => router.push("/auth") },
+    //   ]);
+    //   return;
+    // }
+
+    // try {
+    //   const valueToStore =
+    //     typeof isVacationEnabled === "string"
+    //       ? isVacationEnabled
+    //       : String(value);
+
+    //   await AsyncStorage.setItem("vacationMode", valueToStore);
+    //   setIsVacationEnabled(value);
+    // } catch (error) {
+    //   console.error("Failed to set vacation mode:", error);
+    // }
+
+
+     // useEffect(() => {
+  //   const loadVacationMode = async () => {
+  //     try {
+  //       const storedValue = await AsyncStorage.getItem("vacationMode");
+  //       if (storedValue !== null) {
+  //         setIsVacationEnabled(
+  //           storedValue === "true"
+  //             ? true
+  //             : storedValue === "false"
+  //             ? false
+  //             : storedValue
+  //         );
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to load vacation mode:", error);
+  //     }
+  //   };
+  //   loadVacationMode();
+  // }, []);

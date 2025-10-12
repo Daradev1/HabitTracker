@@ -19,7 +19,6 @@ import {
 import { Habit, HabitCompletion } from "../types/database.type";
 import { useAuth } from "./authContext";
 
-// Define the context type
 export type HabitContextType = {
   habits: Habit[];
   setHabits: React.Dispatch<React.SetStateAction<Habit[]>>;
@@ -27,6 +26,7 @@ export type HabitContextType = {
   completedHabits: HabitCompletion[];
   setCompletedHabits: React.Dispatch<React.SetStateAction<HabitCompletion[]>>;
   fetchTodayCompleted: () => Promise<void>;
+  getStreakData: (habit: Habit) => { streak: number; bestStreak: number; total: number; };
   allCompletions: HabitCompletion[];
   fetchAllUserCompletions: () => Promise<void>;
   saveHabitLocally: (habit: LocalHabit) => Promise<void>;
@@ -43,14 +43,16 @@ type LocalHabit = {
   title: string;
   description: string;
   frequency: string;
+  per_interval?: number | null;  // add this since we introduced interval counts
   streak_count: number;
-  last_completed: string; 
+  last_completed: string | null; // <-- fix here
   created_at: string;
   reminders: string[];
   reminderMessage: string;
+  user_id?: string; // optional for premium users
 };
 
-// Create the context with proper typing
+
 export const HabitContext = createContext<HabitContextType | undefined>(undefined);
 
 export const HabitProvider = ({ children }: { children: ReactNode }) => {
@@ -69,6 +71,52 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error fetching local habits:", err);
     }
   };
+
+    const getStreakData = (habit: Habit) => {
+      const completions = allCompletions
+        .filter((c) => c.habit_id === habit.id)
+        .sort(
+          (a, b) =>
+            new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime()
+        );
+  
+      if (completions.length === 0) {
+        return { streak: 0, bestStreak: 0, total: 0 };
+      }
+  
+      let streak = 0;
+      let bestStreak = 0;
+      let total = completions.length;
+      let lastDate: Date | null = null;
+      let currentStreak = 0;
+  
+      completions.forEach((c) => {
+        const date = new Date(c.completed_at);
+  
+        if (!lastDate) {
+          currentStreak = 1;
+        } else {
+          const diffDays =
+            (date.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+  
+          let intervalLimit = 2;
+          if (habit.frequency === "weekly") intervalLimit = 8;
+          if (habit.frequency === "monthly") intervalLimit = 32;
+  
+          if (diffDays <= intervalLimit) {
+            currentStreak += 1;
+          } else {
+            currentStreak = 1;
+          }
+        }
+  
+        if (currentStreak > bestStreak) bestStreak = currentStreak;
+        streak = currentStreak;
+        lastDate = date;
+      });
+  
+      return { streak, bestStreak, total };
+    };
 
   // Fetch habits from Appwrite for premium users
   const fetchPremiumUserHabits = async () => {
@@ -226,6 +274,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
   return (
     <HabitContext.Provider
       value={{
+        getStreakData,
         habits,
         setHabits,
         fetchHabits,
