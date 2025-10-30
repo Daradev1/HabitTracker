@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import { AuthProvider, useAuth } from "@/context/authContext";
 import { HabitProvider } from "@/context/habitContext";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -7,7 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect } from "react";
 import { Alert } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { PaperProvider, useTheme } from "react-native-paper";
+import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
@@ -26,9 +25,8 @@ export default function RootLayout() {
 
 function InnerLayout() {
   const { paperTheme } = useAuth();
-  const { colors } = useTheme();
+  const { colors } = paperTheme;
 
-  // ✅ Safety Lock check on app launch
   useEffect(() => {
     const checkSafetyLock = async () => {
       try {
@@ -41,23 +39,10 @@ function InnerLayout() {
           });
 
           if (!result.success) {
-            Alert.alert(
-              "Access Denied",
-              "Failed to authenticate. Please try again.",
-              [
-                {
-                  text: "Retry",
-                  onPress: () => checkSafetyLock(),
-                },
-                {
-                  text: "Exit App",
-                  onPress: () => {
-                    // optionally exit or restrict access
-                  },
-                  style: "cancel",
-                },
-              ]
-            );
+            Alert.alert("Access Denied", "Failed to authenticate. Please try again.", [
+              { text: "Retry", onPress: () => checkSafetyLock() },
+              { text: "Exit App", style: "cancel" },
+            ]);
           }
         }
       } catch (error) {
@@ -73,34 +58,42 @@ function InnerLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerTitleStyle: { color: colors.onBackground },
+          headerTintColor: colors.onBackground,
+          headerBackButtonDisplayMode: "minimal", // ✅ clean modern back arrow
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth" />
         <Stack.Screen name="login" />
         <Stack.Screen name="account" />
+
         <Stack.Screen
           name="appearance"
           options={{
-            title: "appearance",
+            title: "Appearance",
             headerShown: true,
-            headerBackVisible: false,
+            headerBackButtonDisplayMode: "minimal",
           }}
         />
+
         <Stack.Screen
           name="profile"
           options={{
-            title: "profile",
+            title: "Profile",
             headerShown: true,
-            headerBackVisible: false,
+            headerBackButtonDisplayMode: "minimal",
           }}
         />
+
         <Stack.Screen
           name="habitManager"
           options={{
             title: "Manage Habits",
             headerShown: true,
-            headerBackVisible: false,
+            headerBackButtonDisplayMode: "minimal",
           }}
         />
       </Stack>

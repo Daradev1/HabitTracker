@@ -289,8 +289,11 @@ const handleSafetyLock = async (value: boolean) => {
 
           <Divider style={styles.divider} />
 
-          <TouchableRipple>
-            <View style={styles.settingItem}>
+          <TouchableRipple
+          onPress={() => router.push("/habitManager")}>
+            <View style={styles.settingItem}
+            
+            >
               <Text style={styles.settingText}>Habit Manager</Text>
               <MaterialCommunityIcons
                 name="chevron-right"
@@ -332,7 +335,7 @@ const handleSafetyLock = async (value: boolean) => {
               <Text
                 style={[styles.settingText, { marginLeft: 12, flexShrink: 1 }]}
               >
-                Instagram: lightbyte_apps
+                Instagram: dara_apps
               </Text>
             </View>
           </TouchableRipple>
