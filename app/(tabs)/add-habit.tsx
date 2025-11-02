@@ -9,7 +9,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import Modal from "react-native-modal";
 import { Button, SegmentedButtons, Switch, Text, TextInput, TouchableRipple, useTheme } from "react-native-paper";
+import RingtoneSelector from "../../components/RingtoneSelector";
 
 const FREQUENCIES = ["daily", "weekly", "monthly"];
 type Frequency = (typeof FREQUENCIES)[number];
@@ -30,7 +32,12 @@ export default function AddHabit() {
   const [reminderTimes, setReminderTimes] = useState<string[]>([]);
   const [weeklyCount, setWeeklyCount] = useState(0);
   const [monthlyCount, setMonthlyCount] = useState(0);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedTone, setSelectedTone] = useState("Default");
 
+    const handleSelectTone = (tone: string) => {
+    setSelectedTone(tone);
+  };
   const handleSubmit = async () => {
     if (isReminderEnabled && reminderTimes.length === 0) {
       Alert.alert("Reminder Required", "Add at least one reminder time or disable reminders.");
@@ -123,6 +130,10 @@ export default function AddHabit() {
       borderRadius: 10,
       backgroundColor: colors.surfaceVariant,
     },
+    touch: { 
+      padding: 8,
+      borderRadius: 8,
+     },
     segmentedButtons: { marginBottom: 24 },
     errorText: { color: "red", marginTop: 12, textAlign: "center" },
     optionItem: {
@@ -209,15 +220,34 @@ export default function AddHabit() {
             <>
               <TimePicker reminderTimes={reminderTimes} setReminderTimes={setReminderTimes} />
 
+              {/*ring tone  */}
               <View style={styles.optionItem}>
-                <Text style={{ color: colors.onSurface }}>Ringtone</Text>
-                <TouchableRipple onPress={() => {}}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ color: colors.onSurfaceVariant, marginRight: 8 }}>Universe</Text>
-                    <MaterialCommunityIcons name="chevron-right" size={24} color={colors.outline} />
-                  </View>
-                </TouchableRipple>
-              </View>
+  <Text style={styles.sectionHeader}>Ringtone</Text>
+  <TouchableRipple onPress={() => setModalVisible(true)}>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Text style={{ color: colors.onSurfaceVariant, marginRight: 6 }}>
+        {selectedTone}
+      </Text>
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={24}
+        color={colors.outline}
+      />
+    </View>
+  </TouchableRipple>
+
+  <Modal
+    isVisible={isModalVisible}
+    onBackdropPress={() => setModalVisible(false)}
+    style={{ justifyContent: "flex-end", margin: 0 }}
+  >
+    <RingtoneSelector
+      onSelect={handleSelectTone}
+      selectedTone={selectedTone}
+      onClose={() => setModalVisible(false)}
+    />
+  </Modal>
+</View>
 
               <Text style={styles.messageLabel}>Motivational Message</Text>
               <TextInput

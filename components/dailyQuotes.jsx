@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
@@ -14,10 +15,40 @@ export default function DailyQuote() {
   useEffect(() => {
     const fetchQuote = async () => {
       try {
+        // 1️⃣ Try loading cached quote
+        const cachedData = await AsyncStorage.getItem("dailyQuote");
+        if (cachedData) {
+          const { quote, author, date } = JSON.parse(cachedData);
+          const isSameDay = checkIfSameDay(date);
+
+          if (isSameDay) {
+            // Use cached quote if it's from today
+            setQuote(quote);
+            setAuthor(author);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // 2️⃣ Fetch new quote if not cached or outdated
         const response = await fetch("https://zenquotes.io/api/today");
         const data = await response.json();
-        setQuote(data[0].q);
-        setAuthor(data[0].a);
+
+        if (data && data[0]) {
+          const newQuote = data[0].q;
+          const newAuthor = data[0].a;
+
+          setQuote(newQuote);
+          setAuthor(newAuthor);
+
+          // 3️⃣ Cache new quote with today's date
+          const newCache = {
+            quote: newQuote,
+            author: newAuthor,
+            date: new Date().toISOString(),
+          };
+          await AsyncStorage.setItem("dailyQuote", JSON.stringify(newCache));
+        }
       } catch (error) {
         console.log("Error fetching quote:", error);
       } finally {
@@ -28,10 +59,21 @@ export default function DailyQuote() {
     fetchQuote();
   }, []);
 
+  // Utility: Check if stored date is today
+  const checkIfSameDay = (dateString) => {
+    const savedDate = new Date(dateString);
+    const today = new Date();
+    return (
+      savedDate.getDate() === today.getDate() &&
+      savedDate.getMonth() === today.getMonth() &&
+      savedDate.getFullYear() === today.getFullYear()
+    );
+  };
+
   const handleCopy = async () => {
     await Clipboard.setStringAsync(`"${quote}" — ${author}`);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500); // reset text after 1.5s
+    setTimeout(() => setCopied(false), 1500);
   };
 
   if (loading) {
