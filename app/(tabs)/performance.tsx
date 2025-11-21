@@ -289,7 +289,7 @@ const data = generateContributionData(allCompletions);
           </Card>
         ))}
       </View>
-
+      
       <View style={styles.buttonContainer}>
         <Button
           mode="contained"

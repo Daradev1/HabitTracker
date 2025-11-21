@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
+import { nanoid } from "nanoid";
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import Modal from "react-native-modal";
@@ -38,15 +39,15 @@ export default function AddHabit() {
     const handleSelectTone = (tone: string) => {
     setSelectedTone(tone);
   };
+
   const handleSubmit = async () => {
     if (isReminderEnabled && reminderTimes.length === 0) {
       Alert.alert("Reminder Required", "Add at least one reminder time or disable reminders.");
       return;
     }
 
-    const generateRandomId = () => "habit_" + Math.random().toString(36).substring(2, 9);
-    const randomId = generateRandomId();
-
+  const generateRandomId = () => 'habit_' + nanoid();
+  const randomId = generateRandomId();
     try {
       const perInterval =
         frequency === "weekly"

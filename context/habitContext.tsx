@@ -8,7 +8,7 @@ import {
   useEffect,
   useState
 } from "react";
-import { AppState } from "react-native";
+import { Alert, AppState } from "react-native";
 import { Query } from "react-native-appwrite";
 import {
   COMPLETIONS_COLLECTION_ID,
@@ -23,6 +23,7 @@ export type HabitContextType = {
   habits: Habit[];
   setHabits: React.Dispatch<React.SetStateAction<Habit[]>>;
   fetchHabits: () => Promise<void>;
+  handleDeleteHabit: (habitId: string)=> Promise<void>
   completedHabits: HabitCompletion[];
   setCompletedHabits: React.Dispatch<React.SetStateAction<HabitCompletion[]>>;
   fetchTodayCompleted: () => Promise<void>;
@@ -61,6 +62,80 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completedHabits, setCompletedHabits] = useState<HabitCompletion[]>([]);
   const [allCompletions, setAllCompletions] = useState<HabitCompletion[]>([]);
+
+// delete habit 
+const handleDeleteHabit = async (habitId: string) => {
+  try {
+    if (user && plan !== "free") {
+      try {
+        // Delete the habit document
+        try {
+          await databases.deleteDocument(DBID!, habitCollectionId!, habitId);
+          console.log("✅ Habit document deleted successfully.");
+        } catch (habitError) {
+          console.error("❌ Failed to delete habit document:", habitError);
+        }
+
+        // Find completion(s) linked to the habit
+        const existingCompletions = await databases.listDocuments(
+          DBID!,
+          COMPLETIONS_COLLECTION_ID!,
+          [Query.equal("habit_id", habitId)]
+        );
+
+        if (existingCompletions.total > 0) {
+          for (const doc of existingCompletions.documents) {
+            try {
+              await databases.deleteDocument(
+                DBID!,
+                COMPLETIONS_COLLECTION_ID!,
+                doc.$id
+              );
+              console.log(`✅ Deleted completion: ${doc.$id}`);
+            } catch (completionError) {
+              console.error(
+                `❌ Failed to delete completion (${doc.$id}):`,
+                completionError
+              );
+            }
+          }
+        } else {
+          console.log("ℹ️ No completions found for this habit.");
+        }
+      } catch (outerError) {
+        console.error("Unexpected error during habit deletion:", outerError);
+      }
+    }
+
+    // --- Local storage cleanup ---
+    const existingHabits = await AsyncStorage.getItem("@habits");
+    if (existingHabits) {
+      const habits = JSON.parse(existingHabits);
+      const updatedHabits = habits.filter(
+        (h: any) => String(h.id) !== String(habitId)
+      );
+      await AsyncStorage.setItem("@habits", JSON.stringify(updatedHabits));
+      setHabits(updatedHabits);
+    }
+
+    const existingCompletionsLS = await AsyncStorage.getItem("@completedHabits");
+    if (existingCompletionsLS) {
+      const completions = JSON.parse(existingCompletionsLS);
+      const updatedCompletions = completions.filter(
+        (c: any) => String(c.habit_id) !== String(habitId)
+      );
+      await AsyncStorage.setItem("@completedHabits", JSON.stringify(updatedCompletions));
+      setCompletedHabits((prev) =>
+        prev.filter((id) => String(id) !== String(habitId))
+      );
+    }
+
+  } catch (error) {
+    console.error("Error deleting habit:", error);
+    Alert.alert("Error", "Failed to delete habit");
+  }
+};
+
 
    // Fetch habits from local for free users
   const fetchFreeUserHabits = async () => {
@@ -276,6 +351,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
       value={{
         getStreakData,
         habits,
+        handleDeleteHabit,
         setHabits,
         fetchHabits,
         setCompletedHabits,

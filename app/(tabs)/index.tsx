@@ -21,13 +21,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ID, Query } from "react-native-appwrite";
+import { Query } from "react-native-appwrite";
 import { Swipeable } from "react-native-gesture-handler";
 import { ActivityIndicator, Surface, Text, useTheme } from "react-native-paper";
 
 export default function HomeScreen() {
   const { plan, user } = useAuth();
-  const { habits, setHabits, fetchHabits } = useHabit();
+  const { habits, setHabits, fetchHabits, handleDeleteHabit } = useHabit();
   const navigation = useNavigation();
   const theme = useTheme();
   const { colors, dark } = theme;
@@ -114,10 +114,8 @@ export default function HomeScreen() {
       await fetchHabits();
       await fetchTodayCompleted();
     };
-
     // Initial fetch
     fetchData();
-
     // For premium users: realtime subscriptions
     let habitsSubscription: (() => void) | null = null;
     let completionsSubscription: (() => void) | null = null;
@@ -184,59 +182,11 @@ export default function HomeScreen() {
     }
   }, [navigation, user, plan]);
 
-  const handleDeleteHabit = async (habitId: string) => {
-    try {
-      // Close swipeable immediately
-      SwipeableRefs.current[habitId]?.close();
 
-      // For premium users
-      if (user && plan !== "free") {
-        try {
-          await databases.deleteDocument(DBID!, habitCollectionId!, habitId);
-        } catch (remoteError) {
-          console.error("Remote delete failed:", remoteError);
-        }
-      }
-
-      // Update local storage for all users
-      const existingHabits = await AsyncStorage.getItem("@habits");
-
-      if (existingHabits) {
-        const habits = JSON.parse(existingHabits);
-        // Filter out the habit to delete
-
-        const updatedHabits = habits.filter((h: any) => {
-          // Ensure consistent ID comparison
-          return String(h.id) === String(habitId) ? false : true;
-        });
-        await AsyncStorage.setItem("@habits", JSON.stringify(updatedHabits));
-        // Optimistically update UI state
-        setHabits(updatedHabits);
-      }
-
-      // Clean up related completions
-      const existingCompletions = await AsyncStorage.getItem(
-        "@completedHabits"
-      );
-      if (existingCompletions) {
-        const completions = JSON.parse(existingCompletions);
-        const updatedCompletions = completions.filter((c: any) => {
-          return String(c.habit_id) !== String(habitId);
-        });
-        await AsyncStorage.setItem(
-          "@completedHabits",
-          JSON.stringify(updatedCompletions)
-        );
-        setCompletedHabits((prev) =>
-          prev.filter((id) => String(id) !== String(habitId))
-        );
-      }
-    } catch (error) {
-      console.error("Error deleting habit:", error);
-      Alert.alert("Error", "Failed to delete habit");
-    }
-  };
-
+  const handleDelete = (habitId: string)=>{
+    SwipeableRefs.current[habitId]?.close();
+    handleDeleteHabit(habitId)
+  }
   const handleCompleteHabit = async (habitId: string) => {
     if (!habitId || completedHabits?.includes(habitId)) return;
 
@@ -261,7 +211,7 @@ export default function HomeScreen() {
           await databases.createDocument(
             DBID!,
             COMPLETIONS_COLLECTION_ID!,
-            ID.unique(), // instead of habitId
+            habitId,
             completionData
           );
 
@@ -367,6 +317,20 @@ export default function HomeScreen() {
     return false;
   };
 
+  // routing handlers
+  const router = useRouter();
+  const handleUser = () => {
+    if (plan === "premium" && user) {
+      router.replace("/account");
+    }
+    return;
+  };
+  const handleUpgradeRoute = () => {
+    if (plan === "premium") return;
+    router.replace("/auth");
+  };
+
+  // Swipeable action renderers
   const renderRightActions = (habitId: string) => {
     return (
       <View style={styles.swipeableActionRight}>
@@ -404,21 +368,8 @@ export default function HomeScreen() {
       </View>
     );
   };
-  const router = useRouter();
-
-  const handleUser = () => {
-    if (plan === "premium" && user) {
-      router.replace("/account");
-    }
-    return;
-  };
-  const handleUpgradeRoute = () => {
-    if (plan === "premium") return;
-    router.replace("/auth");
-  };
 
   // css
-
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -566,7 +517,18 @@ export default function HomeScreen() {
       backgroundColor: "#E8F5E9",
     },
   });
-
+//  const clean = async () => {
+//     try {
+//       const existingCompletions = await AsyncStorage.getItem(
+//         "@completedHabits"
+//       );
+//       console.log("Existing Completions before clean:", existingCompletions);
+//       // await AsyncStorage.removeItem("@completedHabits");
+//       // console.log("Completions cleared from local storage.");
+//     } catch (err) {
+//       console.error("Error fetching local habits:", err);
+//     }
+// };
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -623,7 +585,7 @@ export default function HomeScreen() {
               renderRightActions={() => renderRightActions(habit.id)}
               onSwipeableOpen={(direction) => {
                 if (direction === "left") {
-                  handleDeleteHabit(habit.id);
+                  handleDelete(habit.id);
                 } else if (direction === "right") {
                   handleCompleteHabit(habit.id);
                 }

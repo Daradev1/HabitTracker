@@ -152,13 +152,13 @@ const handleSafetyLock = async (value: boolean) => {
     },
     content: {
       flex: 1,
-      paddingHorizontal: 20,
+      paddingHorizontal: 0,
       paddingTop: 12,
     },
     card: {
       backgroundColor: colors.surface,
       borderRadius: 12,
-      padding: 20,
+      // padding: 20,
       marginBottom: 24,
       elevation: 2,
     },
@@ -167,6 +167,14 @@ const handleSafetyLock = async (value: boolean) => {
       fontWeight: "600",
       color: colors.onSurface,
       marginBottom: 16,
+      marginLeft: 20,
+    },
+    settingsSectionTitle:{
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.onSurface,
+      marginBottom: 16,
+      padding: 20,
     },
     quoteText: {
       fontSize: 16,
@@ -180,6 +188,7 @@ const handleSafetyLock = async (value: boolean) => {
       alignItems: "center",
       justifyContent: "space-between",
       paddingVertical: 14,
+      padding: 20,
     },
     settingText: {
       fontSize: 16,
@@ -248,7 +257,7 @@ const handleSafetyLock = async (value: boolean) => {
        <DailyQuote/>
    {/*quote  */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={styles.settingsSectionTitle}>Settings</Text>
 
           <TouchableRipple onPress={() => handleSafetyLock(!isSafetyLockEnabled)}>
             <View style={styles.settingItem}>
